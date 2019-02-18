@@ -189,7 +189,7 @@ class DirVAE(BaseModel):
             mi = self.entropy_loss(avg_log_qy, unit_average=True)\
                  - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, mi=mi)
+            results = Pack(nll=nll, mi=mi, reg_kl=self.avg_kld)
 
             if return_latent:
                 results['log_qy'] = log_qy
