@@ -13,6 +13,7 @@ from laed import main as engine
 from laed.dataset import corpora
 from laed.dataset import data_loaders
 from laed.models import sent_models
+from laed.models import models
 from laed.utils import str2bool, prepare_dirs_loggers, get_time, process_config
 
 arg_lists = []
@@ -37,6 +38,7 @@ data_arg.add_argument('--log_dir', type=str, default='logs')
 
 # Network
 net_arg = add_argument_group('Network')
+net_arg.add_argument('--num_topic', type=int, default=200)
 net_arg.add_argument('--y_size', type=int, default=20)  # number of discrete variables
 net_arg.add_argument('--k', type=int, default=10)  # number of classes for each variable
 net_arg.add_argument('--rnn_cell', type=str, default='gru')
@@ -76,7 +78,7 @@ train_arg.add_argument('--max_epoch', type=int, default=50)
 # MISC
 misc_arg = add_argument_group('Misc')
 misc_arg.add_argument('--save_model', type=str2bool, default=True)
-misc_arg.add_argument('--use_gpu', type=str2bool, default=True)
+misc_arg.add_argument('--use_gpu', type=str2bool, default=False)
 misc_arg.add_argument('--print_step', type=int, default=500)
 misc_arg.add_argument('--fix_batch', type=str2bool, default=False)
 misc_arg.add_argument('--train_prior', type=str2bool, default=False)
@@ -109,7 +111,9 @@ def main(config):
     train_feed = data_loaders.PTBDataLoader("Train", train_dial, config)
     valid_feed = data_loaders.PTBDataLoader("Valid", valid_dial, config)
     test_feed = data_loaders.PTBDataLoader("Test", test_dial, config)
-    model = sent_models.DiVAE(corpus_client, config)
+    #model = sent_models.DiVAE(corpus_client, config)
+    model = models.DirVAE(corpus_client, config)
+    model.apply(lambda m: [torch.nn.init.uniform_(p.data, -1.0 * config.init_w, config.init_w) for p in m.parameters()])
 
     if config.forward_only:
         test_file = os.path.join(config.log_dir, config.load_sess,
