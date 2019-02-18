@@ -166,7 +166,7 @@ class DirVAE(BaseModel):
         else:
             # RNN reconstruction
             label_mask = torch.sign(labels).detach().float()
-            bow_loss = -F.log_softmax(self.bow_logits, dim=1).gather(1, labels) * label_mask
+            bow_loss = -F.log_softmax(self.bow_logits.squeeze(), dim=1).gather(1, labels) * label_mask
             bow_loss = torch.sum(bow_loss, 1)
             self.avg_bow_loss  = torch.mean(bow_loss)
 
