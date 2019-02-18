@@ -148,7 +148,7 @@ class DirVAE(BaseModel):
         z = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
         self.p = F.softmax(z, -1)  
         # map sample to initial state of decoder
-        dec_init_state = self.dec_init_connector(z)
+        dec_init_state = F.tanh(self.dec_init_connector(z))
         # get decoder inputs
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
@@ -257,7 +257,7 @@ class DirVAE(BaseModel):
         self.p = F.softmax(z, -1) 
 
         # map sample to initial state of decoder
-        dec_init_state = self.dec_init_connector(self.p)
+        dec_init_state = self.dec_init_connector(z)
 
         # get decoder inputs
         labels = out_utts[:, 1:].contiguous()
