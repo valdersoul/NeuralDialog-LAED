@@ -107,7 +107,7 @@ class DirVAE(BaseModel):
         # BOW loss
         self.bow_project = nn.Sequential(
             nn.Linear(self.h_dim, self.vocab_size),
-            self.decoder_bn()
+            self.decoder_bn
         )
 
 
@@ -116,11 +116,23 @@ class DirVAE(BaseModel):
     def valid_loss(self, loss, batch_cnt=None):
         total_loss = 0
         total_loss += loss.nll
+        if self.config.use_reg_kl:
+            total_loss += loss.reg_kl
+
+        return total_loss
+    
+    def train_loss(self, loss, batch_cnt=None):
+        total_loss = 0
+        total_loss += loss.nll
         total_loss += loss.bow
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
 
         return total_loss
+
+    def backward(self, batch_cnt, loss):
+        total_loss = self.train_loss(loss, batch_cnt)
+        total_loss.backward()
 
     def forward(self, data_feed, mode, gen_type='greedy', sample_n=1, return_latent=False):
         batch_size = len(data_feed['output_lens'])

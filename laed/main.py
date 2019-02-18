@@ -172,10 +172,9 @@ def validate(model, valid_feed, config, batch_cnt=None):
             break
         loss = model(batch, mode=TEACH_FORCE)
         losses.add_loss(loss, 'bow')
-        valid_loss = losses.avg_loss()
-        #losses.add_backward_loss(model.model_sel_loss(loss, batch_cnt))
+        losses.add_backward_loss(model.model_sel_loss(loss, batch_cnt))
 
-    #valid_loss = losses.avg_loss()
+    valid_loss = losses.avg_loss()
     logger.info(losses.pprint(valid_feed.name))
     logger.info("Total valid loss {}".format(valid_loss))
 
