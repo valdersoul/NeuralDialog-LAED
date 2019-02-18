@@ -99,7 +99,7 @@ class DirVAE(BaseModel):
 
         # BOW loss
         self.bow_project = nn.Sequential(
-            nn.Linear(self.dec_cell_size, 400),
+            nn.Linear(self.h_dim, 400),
             nn.Tanh(),
             nn.Dropout(self.dropout),
             nn.Linear(400, self.vocab_size)
