@@ -162,8 +162,6 @@ class DirVAE(BaseModel):
                                                    beam_size=self.beam_size)
         # compute loss or return results
         if mode == GEN:
-            print(self.p)
-            print(dec_init_state)
             return dec_ctx, labels
         else:
             # RNN reconstruction
