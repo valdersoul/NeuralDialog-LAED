@@ -121,8 +121,8 @@ class BaseModel(nn.Module):
     def get_optimizer(self, config):
         if config.op == 'adam':
             print("Use adam")
-            return torch.optim.Adam(filter(lambda p: p.requires_grad,
-                                           self.parameters()), lr=config.init_lr)
+            return torch.optim.Adadelta(filter(lambda p: p.requires_grad,
+                                           self.parameters()), lr=1, rho=0.99)
         elif config.op == 'sgd':
             print("Use SGD")
             return torch.optim.SGD(self.parameters(), lr=config.init_lr,
