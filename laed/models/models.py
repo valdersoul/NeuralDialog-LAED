@@ -97,11 +97,21 @@ class DirVAE(BaseModel):
         # if self.use_gpu:
         #     self.log_uniform_y = self.log_uniform_y.cuda()
 
+        # BOW loss
+        self.bow_project = nn.Sequential(
+            nn.Linear(self.dec_cell_size, 400),
+            nn.Tanh(),
+            nn.Dropout(1 - config.keep_prob),
+            nn.Linear(400, self.vocab_size)
+        )
+
+
         self.kl_w = 0.0
 
     def valid_loss(self, loss, batch_cnt=None):
         total_loss = 0
         total_loss += loss.nll
+        total_loss += loss.bow_loss
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
 
@@ -143,6 +153,8 @@ class DirVAE(BaseModel):
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
 
+        self.bow_logits = self.bow_project(dec_init_state)
+
         # decode
         dec_outs, dec_last, dec_ctx = self.decoder(batch_size,
                                                    dec_inputs, dec_init_state,
@@ -153,6 +165,11 @@ class DirVAE(BaseModel):
             return dec_ctx, labels
         else:
             # RNN reconstruction
+            label_mask = torch.sign(labels).detach().float()
+            bow_loss = -F.log_softmax(self.bow_logits, dim=1).gather(1, labels) * label_mask
+            bow_loss = torch.sum(bow_loss, 1)
+            self.avg_bow_loss  = torch.mean(bow_loss)
+
             nll = self.nll_loss(dec_outs, labels)
             # regularization qy to be uniform
             # avg_log_qy = torch.exp(log_qy.view(-1, self.config.y_size, self.config.k))
@@ -186,7 +203,7 @@ class DirVAE(BaseModel):
             mi = self.entropy_loss(avg_log_qy, unit_average=True)\
                  - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, mi=mi, reg_kl=self.avg_kld)
+            results = Pack(nll=nll, mi=mi, reg_kl=self.avg_kld, bow=self.avg_bow_loss)
 
             #if return_latent:
             #    results['log_qy'] = log_qy
