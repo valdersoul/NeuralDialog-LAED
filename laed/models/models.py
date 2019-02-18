@@ -63,8 +63,15 @@ class DirVAE(BaseModel):
         self.mean_fc = nn.Linear(self.enc_out_size, self.h_dim)
         self.mean_bn    = nn.BatchNorm1d(self.h_dim)                   # bn for mean
         self.logvar_bn  = nn.BatchNorm1d(self.h_dim)               # bn for logvar
+        self.decoder_bn = nn.BatchNorm1d(self.vocab_size)
+
         self.logvar_bn.weight.requires_grad = False
         self.mean_bn.weight.requires_grad = False
+        self.decoder_bn.weight.requires_grad = False
+
+        self.logvar_bn.weight.fill_(1)
+        self.mean_bn.weight.fill_(1)
+        self.decoder_bn.weight.fill_(1)
         # self.q_y = nn.Linear(self.enc_out_size, self.h_dim)
         #self.cat_connector = nn_lib.GumbelConnector()
         self.dec_init_connector = nn_lib.LinearConnector(self.h_dim,
@@ -99,10 +106,8 @@ class DirVAE(BaseModel):
 
         # BOW loss
         self.bow_project = nn.Sequential(
-            nn.Linear(self.h_dim, 400),
-            nn.Tanh(),
-            nn.Dropout(self.dropout),
-            nn.Linear(400, self.vocab_size)
+            nn.Linear(self.h_dim, self.vocab_size),
+            self.decoder_bn()
         )
 
 
