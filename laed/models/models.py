@@ -185,7 +185,7 @@ class DirVAE(BaseModel):
             # find out mutual information
             # H(Z) - H(Z|X)
             log_qy = F.log_softmax(z, -1)
-            avg_log_qy = torch.mean(log_qy, dim=0)
+            avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
             mi = self.entropy_loss(avg_log_qy, unit_average=True)\
                  - self.entropy_loss(log_qy, unit_average=True)
 
