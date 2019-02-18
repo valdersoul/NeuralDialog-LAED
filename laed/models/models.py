@@ -153,7 +153,7 @@ class DirVAE(BaseModel):
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
 
-        self.bow_logits = self.bow_project(z)
+        self.bow_logits = self.bow_project(self.p)
 
         # decode
         dec_outs, dec_last, dec_ctx = self.decoder(batch_size,
