@@ -111,7 +111,7 @@ class DirVAE(BaseModel):
     def valid_loss(self, loss, batch_cnt=None):
         total_loss = 0
         total_loss += loss.nll
-        total_loss += loss.bow_loss
+        total_loss += loss.bow
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
 
