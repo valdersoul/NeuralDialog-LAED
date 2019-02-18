@@ -19,9 +19,9 @@ class LossManager(object):
         self.losses = defaultdict(list)
         self.backward_losses = []
 
-    def add_loss(self, loss):
+    def add_loss(self, loss, out=None):
         for key, val in loss.items():
-            if val is not None and type(val) is not bool:
+            if key != out and val is not None and type(val) is not bool:
                 self.losses[key].append(val.item())
 
     def add_backward_loss(self, loss):
@@ -171,7 +171,7 @@ def validate(model, valid_feed, config, batch_cnt=None):
         if batch is None:
             break
         loss = model(batch, mode=TEACH_FORCE)
-        losses.add_loss(loss)
+        losses.add_loss(loss, 'bow')
         losses.add_backward_loss(model.model_sel_loss(loss, batch_cnt))
 
     valid_loss = losses.avg_loss()
