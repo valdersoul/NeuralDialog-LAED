@@ -100,7 +100,8 @@ class DirVAE(BaseModel):
         self.kl_w = 0.0
 
     def valid_loss(self, loss, batch_cnt=None):
-        total_loss = loss.nll
+        total_loss = 0
+        total_loss += loss.nll
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
 
@@ -136,10 +137,8 @@ class DirVAE(BaseModel):
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
         z = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
         self.p = F.softmax(z, -1)  
-
         # map sample to initial state of decoder
         dec_init_state = self.dec_init_connector(self.p)
-
         # get decoder inputs
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
@@ -155,7 +154,6 @@ class DirVAE(BaseModel):
         else:
             # RNN reconstruction
             nll = self.nll_loss(dec_outs, labels)
-
             # regularization qy to be uniform
             # avg_log_qy = torch.exp(log_qy.view(-1, self.config.y_size, self.config.k))
             # avg_log_qy = torch.log(torch.mean(avg_log_qy, dim=0) + 1e-15)
@@ -171,7 +169,6 @@ class DirVAE(BaseModel):
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
             self.avg_kld = torch.mean(KLD)
-
             # if self.config.use_mutual:
             #     if self.config.train_prior:
             #         reg_kl = self.cat_kl_loss(avg_log_qy, F.log_softmax(self.log_py, self.log_py.dim()-1),
@@ -191,10 +188,10 @@ class DirVAE(BaseModel):
 
             results = Pack(nll=nll, mi=mi, reg_kl=self.avg_kld)
 
-            if return_latent:
-                results['log_qy'] = log_qy
-                results['dec_init_state'] = dec_init_state
-                results['y_ids'] = self.p
+            #if return_latent:
+            #    results['log_qy'] = log_qy
+            #    results['dec_init_state'] = dec_init_state
+            #    results['y_ids'] = self.p
 
             return results
 
