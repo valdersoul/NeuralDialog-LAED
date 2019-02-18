@@ -141,8 +141,8 @@ def cast_type(var, dtype, use_gpu):
     return var
 
 
-# def get_dekenize():
-#     return lambda x: MosesDetokenizer().detokenize(x, return_str=True)
+def get_dekenize():
+    return lambda x: MosesDetokenizer().detokenize(x, return_str=True)
 
 
 def get_tokenize():
