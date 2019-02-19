@@ -59,8 +59,8 @@ class DirVAE(BaseModel):
         self.register_buffer('prior_var',     prior_var)
         self.register_buffer('prior_logvar',  prior_logvar)
 
-        self.logvar_fc = nn.Linear(self.enc_out_size, self.h_dim)
-        self.mean_fc = nn.Linear(self.enc_out_size, self.h_dim)
+        self.logvar_fc = nn.Sequential(nn.Linear(self.enc_out_size, self.h_dim), nn.ReLU(), nn.Linear(self.h_dim, self.h_dim))
+        self.mean_fc = nn.Sequential(nn.Linear(self.enc_out_size, self.h_dim), nn.ReLU(), nn.Linear(self.h_dim, self.h_dim))
         self.mean_bn    = nn.BatchNorm1d(self.h_dim)                   # bn for mean
         self.logvar_bn  = nn.BatchNorm1d(self.h_dim)               # bn for logvar
         self.decoder_bn = nn.BatchNorm1d(self.vocab_size)
