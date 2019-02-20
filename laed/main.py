@@ -131,9 +131,6 @@ def train(model, train_feed, valid_feed, test_feed, config, evaluator, gen=None)
                 # generating
                 gen(model, test_feed, config, evaluator, num_batch=config.preview_batch_num)
 
-                # print topic-words
-                model.print_top_words()
-
                 # update early stopping stats
                 if valid_loss < best_valid_loss:
                     if valid_loss <= valid_loss_threshold * config.improve_threshold:
@@ -180,6 +177,9 @@ def validate(model, valid_feed, config, batch_cnt=None):
     valid_loss = losses.avg_loss()
     logger.info(losses.pprint(valid_feed.name))
     logger.info("Total valid loss {}".format(valid_loss))
+
+    # print topic-words
+    model.print_top_words()
 
     return valid_loss
 
