@@ -116,7 +116,7 @@ class DirVAE(BaseModel):
     def print_top_words(self, n_top_words=10):
         emb = torch.nn.functional.softmax(self.bow_project[0].weight, 0).data.cpu().numpy().T
         print( '---------------Printing the Topics------------------')
-        with open('topic_interpretability/data/topics_20news.txt', 'w') as f:
+        with open('topic-word.txt', 'w') as f:
             for i in range(len(emb)):
                 print(" ".join([self.vocab[j+1]
                     for j in emb[i][1:].argsort()[:-n_top_words - 1:-1]]))
