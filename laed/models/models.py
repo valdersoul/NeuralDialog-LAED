@@ -37,7 +37,7 @@ class DirVAE(BaseModel):
         self.bi_enc_cell = config.bi_enc_cell
         self.attn_type = config.attn_type
         self.enc_out_size = self.enc_cell_size * 2 if self.bi_enc_cell else self.enc_cell_size
-        self.full_kl_step = 10000
+        self.full_kl_step = 200000.0
 
         # build model here
         self.embedding = nn.Embedding(self.vocab_size, self.embed_size,
@@ -153,7 +153,7 @@ class DirVAE(BaseModel):
         total_loss += loss.nll
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
-            total_loss += loss.z_kld * 
+            total_loss += loss.z_kld  
 
         return total_loss
     
@@ -249,7 +249,7 @@ class DirVAE(BaseModel):
             #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
             #     - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, reg_kl=self.avg_kld, z_kld=self.avg_z_kld, bow=self.avg_bow_loss)
+            results = Pack(nll=nll, reg_kl=self.avg_kld, z_kld=self.avg_z_kld, bow=self.avg_bow_loss, kl_w=self.kl_w)
 
             #if return_latent:
             #    results['log_qy'] = log_qy
