@@ -183,7 +183,7 @@ class DirVAE(BaseModel):
         else:
             x_last = x_last.transpose(0, 1).contiguous().view(-1,
                                                               self.enc_out_size)
-        x_topic = get_bow(output_embedding)
+        x_topic, _ = get_bow(output_embedding)
 
 
         #topic posterior network
