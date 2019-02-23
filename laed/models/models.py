@@ -50,7 +50,7 @@ class DirVAE(BaseModel):
                                     bidirection=self.bi_enc_cell)
 
         # Dirichlet Topic Model prior
-        self.h_dim = config.num_topic
+        self.h_dim = config.latent_size
         self.a = 1.*np.ones((1 , self.h_dim)).astype(np.float32)
         prior_mean = torch.from_numpy((np.log(self.a).T - np.mean(np.log(self.a), 1)).T)
         prior_var = torch.from_numpy((((1.0 / self.a) * (1 - (2.0 / self.h_dim))).T +
