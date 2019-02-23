@@ -93,7 +93,6 @@ def train(model, train_feed, valid_feed, test_feed, config, evaluator, gen=None)
     logger.info(summary(model, show_weights=False))
     logger.info("**** Training Begins ****")
     logger.info("**** Epoch 0/{} ****".format(config.max_epoch))
-
     while True:
         train_feed.epoch_init(config, verbose=done_epoch==0, shuffle=True)
         while True:
@@ -102,7 +101,7 @@ def train(model, train_feed, valid_feed, test_feed, config, evaluator, gen=None)
                 break
 
             optimizer.zero_grad()
-            loss = model(batch, mode=TEACH_FORCE)
+            loss = model(batch, mode=TEACH_FORCE, global_t=batch_cnt+1)
             if model.flush_valid:
                 logger.info("Flush previous valid loss")
                 best_valid_loss = np.inf

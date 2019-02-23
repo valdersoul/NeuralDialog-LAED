@@ -37,6 +37,7 @@ class DirVAE(BaseModel):
         self.bi_enc_cell = config.bi_enc_cell
         self.attn_type = config.attn_type
         self.enc_out_size = self.enc_cell_size * 2 if self.bi_enc_cell else self.enc_cell_size
+        self.full_kl_step = 10000
 
         # build model here
         self.embedding = nn.Embedding(self.vocab_size, self.embed_size,
@@ -145,7 +146,7 @@ class DirVAE(BaseModel):
         total_loss = self.train_loss(loss, batch_cnt)
         total_loss.backward()
 
-    def forward(self, data_feed, mode, gen_type='greedy', sample_n=1, return_latent=False):
+    def forward(self, data_feed, mode, global_t=1, gen_type='greedy', sample_n=1, return_latent=False):
         batch_size = len(data_feed['output_lens'])
         out_utts = self.np2var(data_feed['outputs'], LONG)
 
@@ -174,6 +175,11 @@ class DirVAE(BaseModel):
         dec_inputs = out_utts[:, 0:-1]
 
         self.bow_logits = self.bow_project(self.p)
+
+        if self.training():
+            kl_weights = min(global_t / self.full_kl_step, 1.0)
+        else:
+            l_weights = 1.0
 
         # decode
         dec_outs, dec_last, dec_ctx = self.decoder(batch_size,
