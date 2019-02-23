@@ -241,7 +241,8 @@ class DirVAE(BaseModel):
             logvar_division = prior_logvar - posterior_logvar
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
-            z_kld = self.gaussian_kld(rec_mean, rec_logvar)
+            z_kld = self.gaussian_kld_normal(rec_mean, rec_logvar)
+            topic_z_kld = self.gaussian_kld(rec_mean, rec_logvar, posterior_mean, posterior_logvar)
             self.avg_kld = torch.mean(KLD)
             self.avg_z_kld = torch.mean(z_kld)
             #log_qy = F.log_softmax(z, -1)
@@ -381,6 +382,12 @@ class DirVAE(BaseModel):
                                                    beam_size=self.beam_size)
         return dec_ctx, all_y_ids
 
-    def gaussian_kld(self, mu, logvar):
+    def gaussian_kld_normal(self, mu, logvar):
         kld = -0.5 * torch.sum(1 + logvar - torch.pow(mu, 2) - torch.exp(logvar), 1)
+        return kld
+
+    def gaussian_kld(self, recog_mu, recog_logvar, prior_mu, prior_logvar):
+        kld = -0.5 * torch.sum(1 + (recog_logvar - prior_logvar)
+                                - torch.div(torch.pow(prior_mu - recog_mu, 2), torch.exp(prior_logvar))
+                                - torch.div(torch.exp(recog_logvar), torch.exp(prior_logvar)), 1)
         return kld
