@@ -382,5 +382,5 @@ class DirVAE(BaseModel):
         return dec_ctx, all_y_ids
 
     def gaussian_kld(self, mu, logvar):
-        kld = -0.5 * torch.sum(1 + logvar - torch.power(mu) - torch.exp(logvar), 1)
+        kld = -0.5 * torch.sum(1 + logvar - torch.pow(mu) - torch.exp(logvar), 1)
         return kld
