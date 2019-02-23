@@ -130,7 +130,7 @@ class DirVAE(BaseModel):
 
         # BOW loss
         self.bow_project = nn.Sequential(
-            nn.Linear(self.h_dim, self.vocab_size),
+            nn.Linear(self.h_dim + config.latent_size, self.vocab_size),
             self.decoder_bn
         )
 
@@ -209,7 +209,7 @@ class DirVAE(BaseModel):
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
 
-        self.bow_logits = self.bow_project(self.p)
+        self.bow_logits = self.bow_project(torch.cat([z, self.p], -1))
 
         if self.training:
             self.kl_w = min(global_t / self.full_kl_step, 1.0)
