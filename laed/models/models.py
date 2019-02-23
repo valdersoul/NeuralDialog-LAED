@@ -198,7 +198,7 @@ class DirVAE(BaseModel):
         # semantic posterior network
         rec_mean = self.z_mean(x_last)
         rec_logvar = self.z_logvar(x_last)
-        rec_var = rec_logvar.exo()
+        rec_var = rec_logvar.exp()
 
         eps = rec_var.new_empty(rec_var.size()).normal_()
         z = rec_mean + rec_var.sqrt() * eps
