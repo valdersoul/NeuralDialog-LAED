@@ -54,7 +54,7 @@ net_arg.add_argument('--num_layer', type=int, default=1)
 net_arg.add_argument('--use_attn', type=str2bool, default=False)
 net_arg.add_argument('--attn_type', type=str, default='cat')
 net_arg.add_argument('--use_mutual', type=str2bool, default=True)
-net_arg.add_argument('--use_reg_kl', type=str2bool, default=False)
+net_arg.add_argument('--use_reg_kl', type=str2bool, default=True)
 
 
 # Training / test parameters
@@ -113,7 +113,7 @@ def main(config):
     test_feed = data_loaders.PTBDataLoader("Test", test_dial, config)
     #model = sent_models.DiVAE(corpus_client, config)
     model = models.DirVAE(corpus_client, config)
-
+    #model.apply(lambda m: [torch.nn.init.uniform_(p.data, -2.0 * config.init_w, 2.0 * config.init_w) for p in m.parameters()])
     if config.forward_only:
         test_file = os.path.join(config.log_dir, config.load_sess,
                                  "{}-test-{}.txt".format(get_time(), config.gen_type))

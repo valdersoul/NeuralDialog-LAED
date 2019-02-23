@@ -138,7 +138,7 @@ class DirVAE(BaseModel):
         total_loss += loss.nll
         total_loss += loss.bow
         if self.config.use_reg_kl:
-           total_loss += loss.reg_kl
+           total_loss += loss.reg_kl * 0.1
 
         return total_loss
 
@@ -176,7 +176,7 @@ class DirVAE(BaseModel):
 
         self.bow_logits = self.bow_project(self.p)
 
-        if self.training():
+        if self.training:
             kl_weights = min(global_t / self.full_kl_step, 1.0)
         else:
             l_weights = 1.0
