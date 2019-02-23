@@ -195,8 +195,8 @@ class DirVAE(BaseModel):
         posterior_var    = posterior_logvar.exp()
 
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
-        z_topic = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
-        self.p = F.softmax(z_topic, -1)  
+        z = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
+        self.p = F.softmax(z, -1)  
 
         # semantic posterior network
         # rec_mean = self.z_mean(x_last)
