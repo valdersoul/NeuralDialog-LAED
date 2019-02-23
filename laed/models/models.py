@@ -154,7 +154,7 @@ class DirVAE(BaseModel):
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
             total_loss += loss.z_kld  
-            total_loss += loss.t_z_kld
+            #total_loss += loss.t_z_kld
 
         return total_loss
     
@@ -165,7 +165,7 @@ class DirVAE(BaseModel):
         if self.config.use_reg_kl:
            total_loss += loss.reg_kl
            total_loss += loss.z_kld * self.kl_w
-           total_loss += loss.t_z_kld
+           #total_loss += loss.t_z_kld
 
         return total_loss
 
@@ -247,7 +247,7 @@ class DirVAE(BaseModel):
             z_kld = self.gaussian_kld_normal(rec_mean, rec_logvar)
             self.avg_kld = torch.mean(KLD)
             self.avg_z_kld = torch.mean(z_kld)
-            self.avg_z_topic_kld = torch.mean(topic_z_kld)
+            #self.avg_z_topic_kld = torch.mean(topic_z_kld)
             #log_qy = F.log_softmax(z, -1)
             #avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
             #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
