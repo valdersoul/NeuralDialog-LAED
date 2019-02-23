@@ -179,7 +179,7 @@ def validate(model, valid_feed, config, batch_cnt=None):
     logger.info("Total valid loss {}".format(valid_loss))
 
     # print topic-words
-    model.print_top_words()
+    #model.print_top_words()
 
     return valid_loss
 
