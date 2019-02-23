@@ -241,7 +241,7 @@ class DirVAE(BaseModel):
             logvar_division = prior_logvar - posterior_logvar
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
-            z_kld = gaussian_kld(rec_mean, rec_logvar)
+            z_kld = self.gaussian_kld(rec_mean, rec_logvar)
             self.avg_kld = torch.mean(KLD)
             self.avg_z_kld = torch.mean(z_kld)
             #log_qy = F.log_softmax(z, -1)
