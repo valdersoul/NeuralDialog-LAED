@@ -154,6 +154,7 @@ class DirVAE(BaseModel):
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
             total_loss += loss.z_kld  
+            total_loss += loss.t_z_kld
 
         return total_loss
     
@@ -164,6 +165,7 @@ class DirVAE(BaseModel):
         if self.config.use_reg_kl:
            total_loss += loss.reg_kl
            total_loss += loss.z_kld * self.kl_w
+           total_loss += loss.t_z_kld
 
         return total_loss
 
@@ -245,12 +247,13 @@ class DirVAE(BaseModel):
             topic_z_kld = self.gaussian_kld(rec_mean, rec_logvar, posterior_mean, posterior_logvar)
             self.avg_kld = torch.mean(KLD)
             self.avg_z_kld = torch.mean(z_kld)
+            self.avg_z_topic_kld = torch.mean(topic_z_kld)
             #log_qy = F.log_softmax(z, -1)
             #avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
             #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
             #     - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, reg_kl=self.avg_kld, z_kld=self.avg_z_kld, bow=self.avg_bow_loss, kl_w=self.kl_w)
+            results = Pack(nll=nll, reg_kl=self.avg_kld, z_kld=self.avg_z_kld, t_z_kld=self.avg_z_topic_kld, bow=self.avg_bow_loss, kl_w=self.kl_w)
 
             #if return_latent:
             #    results['log_qy'] = log_qy
