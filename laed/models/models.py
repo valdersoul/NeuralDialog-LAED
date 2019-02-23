@@ -259,8 +259,8 @@ class DirVAE(BaseModel):
         end_z_code = z[batch_size - 1]
         all_z_codes = [start_z_code]
         delta = 0.1
-        for idx in range(self.config.y_size):
-            weight = idx * delta
+        for idx in range(10):
+            weight = idx * (delta + 1)
             all_z_codes.append(start_z_code * weight + (1.0 - weight) * end_z_code )
         num_steps = len(all_y_ids)
         all_z_codes = torch.cat(all_z_codes, dim=0).view(num_steps, -1)
