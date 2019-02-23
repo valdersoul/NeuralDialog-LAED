@@ -127,17 +127,17 @@ class DirVAE(BaseModel):
     def valid_loss(self, loss, batch_cnt=None):
         total_loss = 0
         total_loss += loss.nll
-        # if self.config.use_reg_kl:
-        #     total_loss += loss.reg_kl * 0.05
+        if self.config.use_reg_kl:
+            total_loss += loss.reg_kl
 
         return total_loss
     
     def train_loss(self, loss, batch_cnt=None):
         total_loss = 0
         total_loss += loss.nll
-        #total_loss += loss.bow
-        #if self.config.use_reg_kl:
-        #    total_loss += loss.reg_kl
+        total_loss += loss.bow
+        if self.config.use_reg_kl:
+           total_loss += loss.reg_kl
 
         return total_loss
 
@@ -262,9 +262,9 @@ class DirVAE(BaseModel):
         for idx in range(10):
             weight = idx * (delta + 1)
             all_z_codes.append(start_z_code * weight + (1.0 - weight) * end_z_code )
-        num_steps = len(all_y_ids)
+        num_steps = len(all_z_codes)
         all_z_codes = torch.cat(all_z_codes, dim=0).view(num_steps, -1)
-
+        batch_size = num_steps
         #start sweeping
 
         # map sample to initial state of decoder
