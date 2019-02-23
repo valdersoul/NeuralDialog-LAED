@@ -153,7 +153,7 @@ class DirVAE(BaseModel):
         total_loss += loss.nll
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
-            total_loss += loss.z_kld
+            total_loss += loss.z_kld * 
 
         return total_loss
     
@@ -163,7 +163,7 @@ class DirVAE(BaseModel):
         total_loss += loss.bow
         if self.config.use_reg_kl:
            total_loss += loss.reg_kl
-           total_loss += loss.z_kld
+           total_loss += loss.z_kld * self.kl_w
 
         return total_loss
 
@@ -212,9 +212,9 @@ class DirVAE(BaseModel):
         self.bow_logits = self.bow_project(self.p)
 
         if self.training:
-            kl_weights = min(global_t / self.full_kl_step, 1.0)
+            self.kl_w = min(global_t / self.full_kl_step, 1.0)
         else:
-            l_weights = 1.0
+            self.kl_w = 1.0
 
         # decode
         dec_outs, dec_last, dec_ctx = self.decoder(batch_size,
