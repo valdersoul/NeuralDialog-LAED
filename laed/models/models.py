@@ -62,14 +62,14 @@ class DirVAE(BaseModel):
         self.register_buffer('prior_logvar',  prior_logvar)
 
         self.logvar_fc = nn.Sequential(
-                                nn.Linear(self.enc_cell_size, self.h_dim * 2),
-                                nn.ReLU(),
-                                nn.Linear(self.h_dim * 2, self.h_dim)
+                        nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
+                        nn.ReLU(),
+                        nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
                         )
         self.mean_fc = nn.Sequential(
-                                nn.Linear(self.enc_cell_size, self.h_dim * 2),
-                                nn.ReLU(),
-                                nn.Linear(self.h_dim * 2, self.h_dim)
+                        nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
+                        nn.ReLU(),
+                        nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
                         )
         self.mean_bn    = nn.BatchNorm1d(self.h_dim)                   # bn for mean
         self.logvar_bn  = nn.BatchNorm1d(self.h_dim)               # bn for logvar
@@ -86,19 +86,19 @@ class DirVAE(BaseModel):
         #self.cat_connector = nn_lib.GumbelConnector()
 
         # Prior for the Generation
-        self.z_mean  = nn.Sequential(
-                        nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
-                        nn.Tanh(),
-                        nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
-                        )
+        # self.z_mean  = nn.Sequential(
+        #                 nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
+        #                 nn.Tanh(),
+        #                 nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
+        #                 )
 
-        self.z_logvar = self.z_mean  = nn.Sequential(
-                        nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
-                        nn.Tanh(),
-                        nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
-                        )
+        # self.z_logvar = self.z_mean  = nn.Sequential(
+        #                 nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
+        #                 nn.Tanh(),
+        #                 nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
+        #                 )
 
-        self.dec_init_connector = nn_lib.LinearConnector(config.latent_size + self.h_dim,
+        self.dec_init_connector = nn_lib.LinearConnector(config.latent_size, #+ self.h_dim,
                                                          self.dec_cell_size,
                                                          self.rnn_cell == 'lstm',
                                                          has_bias=False)
@@ -130,7 +130,8 @@ class DirVAE(BaseModel):
 
         # BOW loss
         self.bow_project = nn.Sequential(
-            nn.Linear(self.h_dim + config.latent_size, self.vocab_size),
+            #nn.Linear(self.h_dim + config.latent_size, self.vocab_size),
+            nn.Linear(config.latent_size, self.vocab_size),
             self.decoder_bn
         )
 
@@ -152,8 +153,8 @@ class DirVAE(BaseModel):
         total_loss = 0
         total_loss += loss.nll
         if self.config.use_reg_kl:
-            total_loss += loss.reg_kl
-            total_loss += loss.z_kld  
+            total_loss += loss.reg_kl * self.kl_w
+            #total_loss += loss.z_kld  
             #total_loss += loss.t_z_kld
 
         return total_loss
@@ -163,8 +164,8 @@ class DirVAE(BaseModel):
         total_loss += loss.nll
         total_loss += loss.bow
         if self.config.use_reg_kl:
-           total_loss += loss.reg_kl
-           total_loss += loss.z_kld * self.kl_w
+           total_loss += loss.reg_kl * self.kl_w
+           #total_loss += loss.z_kld * self.kl_w
            #total_loss += loss.t_z_kld
 
         return total_loss
@@ -198,20 +199,21 @@ class DirVAE(BaseModel):
         self.p = F.softmax(z_topic, -1)  
 
         # semantic posterior network
-        rec_mean = self.z_mean(x_last)
-        rec_logvar = self.z_logvar(x_last)
-        rec_var = rec_logvar.exp()
+        # rec_mean = self.z_mean(x_last)
+        # rec_logvar = self.z_logvar(x_last)
+        # rec_var = rec_logvar.exp()
 
-        eps = rec_var.new_empty(rec_var.size()).normal_()
-        z = rec_mean + rec_var.sqrt() * eps
+        # eps = rec_var.new_empty(rec_var.size()).normal_()
+        # z = rec_mean + rec_var.sqrt() * eps
 
         # map sample to initial state of decoder
-        dec_init_state = self.dec_init_connector(torch.cat([z, self.p], -1))
+        #dec_init_state = self.dec_init_connector(torch.cat([z, self.p], -1))
+        dec_init_state = self.dec_init_connector(z)
         # get decoder inputs
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
 
-        self.bow_logits = self.bow_project(torch.cat([z, self.p], -1))
+        self.bow_logits = self.bow_project(self.p)#torch.cat([z, self.p], -1))
         #self.z_bow_proj = self.bo
 
         if self.training:
@@ -244,16 +246,16 @@ class DirVAE(BaseModel):
             logvar_division = prior_logvar - posterior_logvar
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
-            z_kld = self.gaussian_kld_normal(rec_mean, rec_logvar)
+            #z_kld = self.gaussian_kld_normal(rec_mean, rec_logvar)
             self.avg_kld = torch.mean(KLD)
-            self.avg_z_kld = torch.mean(z_kld)
+            #self.avg_z_kld = torch.mean(z_kld)
             #self.avg_z_topic_kld = torch.mean(topic_z_kld)
             #log_qy = F.log_softmax(z, -1)
             #avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
             #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
             #     - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, reg_kl=self.avg_kld, z_kld=self.avg_z_kld, t_z_kld=self.avg_z_topic_kld, bow=self.avg_bow_loss, kl_w=self.kl_w)
+            results = Pack(nll=nll, reg_kl=self.avg_kld, bow=self.avg_bow_loss, kl_w=self.kl_w)#z_kld=self.avg_z_kld, t_z_kld=self.avg_z_topic_kld)
 
             #if return_latent:
             #    results['log_qy'] = log_qy
