@@ -62,12 +62,12 @@ class DirVAE(BaseModel):
         self.register_buffer('prior_logvar',  prior_logvar)
 
         self.logvar_fc = nn.Sequential(
-                                nn.Linear(self.self.embed_size, self.h_dim * 2),
+                                nn.Linear(self.embed_size, self.h_dim * 2),
                                 nn.ReLU(),
                                 nn.Linear(self.h_dim * 2, self.h_dim)
                         )
         self.mean_fc = nn.Sequential(
-                                nn.Linear(self.self.embed_size, self.h_dim * 2),
+                                nn.Linear(self.embed_size, self.h_dim * 2),
                                 nn.ReLU(),
                                 nn.Linear(self.h_dim * 2, self.h_dim)
                         )
