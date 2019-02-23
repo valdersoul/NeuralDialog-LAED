@@ -255,10 +255,19 @@ class DirVAE(BaseModel):
         # batch_size = num_steps
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
         z = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
-        self.p = F.softmax(z, -1) 
+        start_z_code = z[0]
+        end_z_code = z[batch_size - 1]
+        all_z_codes = [start_z_code]
+        delta = (end_z_code - start_z_code)
+        for idx in range(self.config.y_size):
+            all_z_codes.append(start_z_code + delta * idx)
+        num_steps = len(all_y_ids)
+        all_z_codes = torch.cat(all_z_codes, dim=0).view(num_steps, -1)
+
+        #start sweeping
 
         # map sample to initial state of decoder
-        dec_init_state = self.dec_init_connector(z)
+        dec_init_state = self.dec_init_connector(all_z_codes)
 
         # get decoder inputs
         labels = out_utts[:, 1:].contiguous()
@@ -270,7 +279,7 @@ class DirVAE(BaseModel):
                                                    mode=GEN, gen_type=gen_type,
                                                    beam_size=self.beam_size)
         # compute loss or return results
-        return dec_ctx, labels, all_y_ids
+        return dec_ctx, labels, all_z_codes
 
     def enumerate(self, repeat=1, gen_type='greedy'):
 
