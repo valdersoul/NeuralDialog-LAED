@@ -62,12 +62,12 @@ class DirVAE(BaseModel):
         self.register_buffer('prior_logvar',  prior_logvar)
 
         self.logvar_fc = nn.Sequential(
-                                nn.Linear(self.embed_size, self.h_dim * 2),
+                                nn.Linear(self.enc_cell_size, self.h_dim * 2),
                                 nn.ReLU(),
                                 nn.Linear(self.h_dim * 2, self.h_dim)
                         )
         self.mean_fc = nn.Sequential(
-                                nn.Linear(self.embed_size, self.h_dim * 2),
+                                nn.Linear(self.enc_cell_size, self.h_dim * 2),
                                 nn.ReLU(),
                                 nn.Linear(self.h_dim * 2, self.h_dim)
                         )
@@ -189,8 +189,8 @@ class DirVAE(BaseModel):
 
 
         #topic posterior network
-        posterior_mean   = self.mean_bn  (self.mean_fc  (x_topic))          # posterior mean
-        posterior_logvar = self.logvar_bn(self.logvar_fc(x_topic)) 
+        posterior_mean   = self.mean_bn  (self.mean_fc  (x_last))          # posterior mean
+        posterior_logvar = self.logvar_bn(self.logvar_fc(x_last)) 
         posterior_var    = posterior_logvar.exp()
 
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
@@ -212,6 +212,7 @@ class DirVAE(BaseModel):
         dec_inputs = out_utts[:, 0:-1]
 
         self.bow_logits = self.bow_project(torch.cat([z, self.p], -1))
+        #self.z_bow_proj = self.bo
 
         if self.training:
             self.kl_w = min(global_t / self.full_kl_step, 1.0)
@@ -244,7 +245,6 @@ class DirVAE(BaseModel):
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
             z_kld = self.gaussian_kld_normal(rec_mean, rec_logvar)
-            topic_z_kld = self.gaussian_kld(rec_mean, rec_logvar, posterior_mean, posterior_logvar)
             self.avg_kld = torch.mean(KLD)
             self.avg_z_kld = torch.mean(z_kld)
             self.avg_z_topic_kld = torch.mean(topic_z_kld)
