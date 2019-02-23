@@ -135,9 +135,9 @@ class DirVAE(BaseModel):
     def train_loss(self, loss, batch_cnt=None):
         total_loss = 0
         total_loss += loss.nll
-        total_loss += loss.bow
-        if self.config.use_reg_kl:
-            total_loss += loss.reg_kl
+        #total_loss += loss.bow
+        #if self.config.use_reg_kl:
+        #    total_loss += loss.reg_kl
 
         return total_loss
 
@@ -158,20 +158,12 @@ class DirVAE(BaseModel):
             x_last = x_last.transpose(0, 1).contiguous().view(-1,
                                                               self.enc_out_size)
 
-        # x_last = torch.mean(x_outs, dim=1)
 
         # posterior network
         posterior_mean   = self.mean_bn  (self.mean_fc  (x_last))          # posterior mean
         posterior_logvar = self.logvar_bn(self.logvar_fc(x_last)) 
         posterior_var    = posterior_logvar.exp()
 
-        # qy_logits = self.q_y(x_last).view(-1, self.config.k)
-        # log_qy = F.log_softmax(qy_logits, qy_logits.dim()-1)
-
-        # switch that controls the sampling
-        # sample_y, y_ids = self.cat_connector(qy_logits, 1.0, self.use_gpu, hard=not self.training, return_max_id=True)
-        # sample_y = sample_y.view(-1, self.config.k * self.config.y_size)
-        # y_ids = y_ids.view(-1, self.config.y_size)
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
         z = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
         self.p = F.softmax(z, -1)  
@@ -199,11 +191,6 @@ class DirVAE(BaseModel):
             self.avg_bow_loss  = torch.mean(bow_loss)
 
             nll = self.nll_loss(dec_outs, labels)
-            # regularization qy to be uniform
-            # avg_log_qy = torch.exp(log_qy.view(-1, self.config.y_size, self.config.k))
-            # avg_log_qy = torch.log(torch.mean(avg_log_qy, dim=0) + 1e-15)
-            # b_pr = self.cat_kl_loss(avg_log_qy, self.log_uniform_y,
-            #                               batch_size, unit_average=True)
             prior_mean   = self.prior_mean.expand_as(posterior_mean)
             prior_var    = self.prior_var.expand_as(posterior_mean)
             prior_logvar = self.prior_logvar.expand_as(posterior_mean)
@@ -214,24 +201,12 @@ class DirVAE(BaseModel):
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
             self.avg_kld = torch.mean(KLD)
-            # if self.config.use_mutual:
-            #     if self.config.train_prior:
-            #         reg_kl = self.cat_kl_loss(avg_log_qy, F.log_softmax(self.log_py, self.log_py.dim()-1),
-            #                                   batch_size, unit_average=True)
-            #     else:
-            #         reg_kl = b_pr
-            # else:
-            #     reg_kl = self.cat_kl_loss(log_qy, self.log_uniform_y,
-            #                               batch_size, unit_average=True)
+            #log_qy = F.log_softmax(z, -1)
+            #avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
+            #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
+            #     - self.entropy_loss(log_qy, unit_average=True)
 
-            # find out mutual information
-            # H(Z) - H(Z|X)
-            log_qy = F.log_softmax(z, -1)
-            avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
-            mi = self.entropy_loss(avg_log_qy, unit_average=True)\
-                 - self.entropy_loss(log_qy, unit_average=True)
-
-            results = Pack(nll=nll, mi=mi, reg_kl=self.avg_kld, bow=self.avg_bow_loss)
+            results = Pack(nll=nll, reg_kl=self.avg_kld, bow=self.avg_bow_loss)
 
             #if return_latent:
             #    results['log_qy'] = log_qy

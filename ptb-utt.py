@@ -54,7 +54,7 @@ net_arg.add_argument('--num_layer', type=int, default=1)
 net_arg.add_argument('--use_attn', type=str2bool, default=False)
 net_arg.add_argument('--attn_type', type=str, default='cat')
 net_arg.add_argument('--use_mutual', type=str2bool, default=True)
-net_arg.add_argument('--use_reg_kl', type=str2bool, default=True)
+net_arg.add_argument('--use_reg_kl', type=str2bool, default=False)
 
 
 # Training / test parameters
@@ -68,7 +68,7 @@ train_arg.add_argument('--init_lr', type=float, default=0.001)
 train_arg.add_argument('--momentum', type=float, default=0.0)
 train_arg.add_argument('--lr_hold', type=int, default=1)
 train_arg.add_argument('--lr_decay', type=float, default=0.6)
-train_arg.add_argument('--dropout', type=float, default=0.3)
+train_arg.add_argument('--dropout', type=float, default=0.5)
 train_arg.add_argument('--improve_threshold', type=float, default=0.996)
 train_arg.add_argument('--patient_increase', type=float, default=2.0)
 train_arg.add_argument('--early_stop', type=str2bool, default=True)
@@ -78,7 +78,7 @@ train_arg.add_argument('--max_epoch', type=int, default=50)
 # MISC
 misc_arg = add_argument_group('Misc')
 misc_arg.add_argument('--save_model', type=str2bool, default=True)
-misc_arg.add_argument('--use_gpu', type=str2bool, default=False)
+misc_arg.add_argument('--use_gpu', type=str2bool, default=True)
 misc_arg.add_argument('--print_step', type=int, default=500)
 misc_arg.add_argument('--fix_batch', type=str2bool, default=False)
 misc_arg.add_argument('--train_prior', type=str2bool, default=False)
@@ -113,7 +113,6 @@ def main(config):
     test_feed = data_loaders.PTBDataLoader("Test", test_dial, config)
     #model = sent_models.DiVAE(corpus_client, config)
     model = models.DirVAE(corpus_client, config)
-    model.apply(lambda m: [torch.nn.init.uniform_(p.data, -1.0 * config.init_w, config.init_w) for p in m.parameters()])
 
     if config.forward_only:
         test_file = os.path.join(config.log_dir, config.load_sess,
