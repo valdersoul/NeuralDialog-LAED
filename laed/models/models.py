@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from laed import criterions
 from laed.enc2dec.decoders import DecoderRNN
 from laed.enc2dec.encoders import EncoderRNN
-from laed.utils import INT, FLOAT, LONG, cast_type
+from laed.utils import INT, FLOAT, LONG, cast_type, get_bow
 from laed import nn_lib
 import numpy as np
 from laed.models.model_bases import BaseModel
@@ -49,6 +49,7 @@ class DirVAE(BaseModel):
                                     variable_lengths=self.config.fix_batch,
                                     bidirection=self.bi_enc_cell)
 
+        # Dirichlet Topic Model prior
         self.h_dim = config.num_topic
         self.a = 1.*np.ones((1 , self.h_dim)).astype(np.float32)
         prior_mean = torch.from_numpy((np.log(self.a).T - np.mean(np.log(self.a), 1)).T)
@@ -60,8 +61,16 @@ class DirVAE(BaseModel):
         self.register_buffer('prior_var',     prior_var)
         self.register_buffer('prior_logvar',  prior_logvar)
 
-        self.logvar_fc = nn.Linear(self.enc_out_size, self.h_dim)
-        self.mean_fc = nn.Linear(self.enc_out_size, self.h_dim)
+        self.logvar_fc = nn.Sequential(
+                                nn.Linear(self.self.embed_size, self.h_dim * 2),
+                                nn.ReLU(),
+                                nn.Linear(self.h_dim * 2, self.h_dim)
+                        )
+        self.mean_fc = nn.Sequential(
+                                nn.Linear(self.self.embed_size, self.h_dim * 2),
+                                nn.ReLU(),
+                                nn.Linear(self.h_dim * 2, self.h_dim)
+                        )
         self.mean_bn    = nn.BatchNorm1d(self.h_dim)                   # bn for mean
         self.logvar_bn  = nn.BatchNorm1d(self.h_dim)               # bn for logvar
         self.decoder_bn = nn.BatchNorm1d(self.vocab_size)
@@ -75,7 +84,21 @@ class DirVAE(BaseModel):
         self.decoder_bn.weight.fill_(1)
         # self.q_y = nn.Linear(self.enc_out_size, self.h_dim)
         #self.cat_connector = nn_lib.GumbelConnector()
-        self.dec_init_connector = nn_lib.LinearConnector(self.h_dim,
+
+        # Prior for the Generation
+        self.z_mean  = nn.Sequential(
+                        nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
+                        nn.Tanh(),
+                        nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
+                        )
+
+        self.z_logvar = self.z_mean  = nn.Sequential(
+                        nn.Linear(self.enc_cell_size, np.maximum(config.latent_size * 2, 100)),
+                        nn.Tanh(),
+                        nn.Linear(np.maximum(config.latent_size * 2, 100), config.latent_size)
+                        )
+
+        self.dec_init_connector = nn_lib.LinearConnector(config.latent_size + self.h_dim,
                                                          self.dec_cell_size,
                                                          self.rnn_cell == 'lstm',
                                                          has_bias=False)
@@ -130,6 +153,7 @@ class DirVAE(BaseModel):
         total_loss += loss.nll
         if self.config.use_reg_kl:
             total_loss += loss.reg_kl
+            total_loss += loss.z_kld
 
         return total_loss
     
@@ -138,7 +162,8 @@ class DirVAE(BaseModel):
         total_loss += loss.nll
         total_loss += loss.bow
         if self.config.use_reg_kl:
-           total_loss += loss.reg_kl * 0.1
+           total_loss += loss.reg_kl
+           total_loss += loss.z_kld
 
         return total_loss
 
@@ -158,18 +183,28 @@ class DirVAE(BaseModel):
         else:
             x_last = x_last.transpose(0, 1).contiguous().view(-1,
                                                               self.enc_out_size)
+        x_topic = get_bow(output_embedding)
 
 
-        # posterior network
-        posterior_mean   = self.mean_bn  (self.mean_fc  (x_last))          # posterior mean
-        posterior_logvar = self.logvar_bn(self.logvar_fc(x_last)) 
+        #topic posterior network
+        posterior_mean   = self.mean_bn  (self.mean_fc  (x_topic))          # posterior mean
+        posterior_logvar = self.logvar_bn(self.logvar_fc(x_topic)) 
         posterior_var    = posterior_logvar.exp()
 
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
-        z = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
-        self.p = F.softmax(z, -1)  
+        z_topic = posterior_mean + posterior_var.sqrt() * eps                 # reparameterization
+        self.p = F.softmax(z_topic, -1)  
+
+        # semantic posterior network
+        rec_mean = self.z_mean(x_last)
+        rec_logvar = self.z_logvar(x_last)
+        rec_var = rec_logvar.exo()
+
+        eps = rec_var.new_empty(rec_var.size()).normal_()
+        z = rec_mean + rec_var.sqrt() * eps
+
         # map sample to initial state of decoder
-        dec_init_state = self.dec_init_connector(z)
+        dec_init_state = self.dec_init_connector(torch.cat([z, self.p], -1))
         # get decoder inputs
         labels = out_utts[:, 1:].contiguous()
         dec_inputs = out_utts[:, 0:-1]
@@ -206,13 +241,15 @@ class DirVAE(BaseModel):
             logvar_division = prior_logvar - posterior_logvar
             # put KLD together
             KLD = 0.5 * ( (var_division + diff_term + logvar_division).sum(1) - self.h_dim )
+            z_kld = gaussian_kld(rec_mean, rec_logvar)
             self.avg_kld = torch.mean(KLD)
+            self.avg_z_kld = torch.mean(z_kld)
             #log_qy = F.log_softmax(z, -1)
             #avg_log_qy = torch.mean(log_qy, dim=0, keepdim=True)
             #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
             #     - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, reg_kl=self.avg_kld, bow=self.avg_bow_loss)
+            results = Pack(nll=nll, reg_kl=self.avg_kld, z_kld=self.avg_z_kld, bow=self.avg_bow_loss)
 
             #if return_latent:
             #    results['log_qy'] = log_qy
@@ -343,3 +380,7 @@ class DirVAE(BaseModel):
                                                    mode=GEN, gen_type=gen_type,
                                                    beam_size=self.beam_size)
         return dec_ctx, all_y_ids
+
+    def gaussian_kld(self, mu, logvar):
+        kld = -0.5 * torch.sum(1 + logvar - torch.power(mu) - torch.exp(logvar), 1)
+        return kld

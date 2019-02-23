@@ -17,6 +17,16 @@ INT = 0
 LONG = 1
 FLOAT = 2
 
+def get_bow(embedding, avg=False):
+    """
+    Assumption, the last dimension is the embedding
+    The second last dimension is the sentence length. The rank must be 3
+    """
+    embedding_size = embedding.size(2)
+    if avg:
+        return embedding.mean(1), embedding_size
+    else:
+        return embedding.sum(1), embedding_size
 
 class Pack(dict):
     def __getattr__(self, name):

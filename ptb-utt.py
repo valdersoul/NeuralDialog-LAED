@@ -38,7 +38,8 @@ data_arg.add_argument('--log_dir', type=str, default='logs')
 
 # Network
 net_arg = add_argument_group('Network')
-net_arg.add_argument('--num_topic', type=int, default=200)
+net_arg.add_argument('--num_topic', type=int, default=50)
+net_arg.add_argument('--latent_size', type=int, default=200)
 net_arg.add_argument('--y_size', type=int, default=20)  # number of discrete variables
 net_arg.add_argument('--k', type=int, default=10)  # number of classes for each variable
 net_arg.add_argument('--rnn_cell', type=str, default='gru')
