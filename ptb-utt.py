@@ -114,7 +114,10 @@ def main(config):
     test_feed = data_loaders.PTBDataLoader("Test", test_dial, config)
     #model = sent_models.DiVAE(corpus_client, config)
     model = models.DirVAE(corpus_client, config)
-    #model.apply(lambda m: [torch.nn.init.uniform_(p.data, config.init_w,  config.init_w) for p in m.parameters()])
+    model.apply(lambda m: [torch.nn.init.uniform_(p.data, config.init_w,  config.init_w) for p in m.parameters()])
+    model.logvar_bn.weight.fill_(1)
+    model.mean_bn.weight.fill_(1)
+    model.decoder_bn.weight.fill_(1)
     if config.forward_only:
         test_file = os.path.join(config.log_dir, config.load_sess,
                                  "{}-test-{}.txt".format(get_time(), config.gen_type))
