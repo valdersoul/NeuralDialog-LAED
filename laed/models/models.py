@@ -135,13 +135,6 @@ class DirVAE(BaseModel):
             self.decoder_bn
         )
 
-        self.bow_project_2 = nn.Sequential(
-            nn.Linear(config.latent_size, 400),
-            nn.Tanh(),
-            nn.Linear(400, self.vocab_size)
-        )
-
-
         self.kl_w = 0.0
 
     def print_top_words(self, n_top_words=10):
@@ -169,7 +162,6 @@ class DirVAE(BaseModel):
         total_loss = 0
         total_loss += loss.nll
         total_loss += loss.bow
-        total_loss += loss.bow_2
         if self.config.use_reg_kl:
            total_loss += loss.reg_kl * self.kl_w
            #total_loss += loss.z_kld * self.kl_w
@@ -223,7 +215,6 @@ class DirVAE(BaseModel):
         dec_inputs = out_utts[:, 0:-1]
 
         self.bow_logits = self.bow_project(self.p)#torch.cat([z, self.p], -1))
-        self.bow_logits_2 = self.self.bow_project_2(z)
         #self.z_bow_proj = self.bo
 
         if self.training:
@@ -246,10 +237,6 @@ class DirVAE(BaseModel):
             bow_loss = torch.sum(bow_loss, 1)
             self.avg_bow_loss  = torch.mean(bow_loss)
 
-            bow_loss_2 = -F.log_softmax(self.bow_logits_2.squeeze(), dim=1).gather(1, labels) * label_mask
-            bow_loss_2 = torch.sum(bow_loss_2, 1)
-            self.avg_bow_loss_2 = torch.mean(bow_loss_2)
-
             nll = self.nll_loss(dec_outs, labels)
             prior_mean   = self.prior_mean.expand_as(posterior_mean)
             prior_var    = self.prior_var.expand_as(posterior_mean)
@@ -269,7 +256,7 @@ class DirVAE(BaseModel):
             #mi = self.entropy_loss(avg_log_qy, unit_average=True)\
             #     - self.entropy_loss(log_qy, unit_average=True)
 
-            results = Pack(nll=nll, reg_kl=self.avg_kld, bow=self.avg_bow_loss, bow_2=self.avg_bow_loss_2, kl_w=self.kl_w)#z_kld=self.avg_z_kld, t_z_kld=self.avg_z_topic_kld)
+            results = Pack(nll=nll, reg_kl=self.avg_kld, bow=self.avg_bow_loss, kl_w=self.kl_w)#z_kld=self.avg_z_kld, t_z_kld=self.avg_z_topic_kld)
 
             #if return_latent:
             #    results['log_qy'] = log_qy
