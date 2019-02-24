@@ -190,8 +190,10 @@ class DirVAE(BaseModel):
 
 
         #topic posterior network
-        posterior_mean   = self.mean_bn  (self.mean_fc  (x_last))          # posterior mean
-        posterior_logvar = self.logvar_bn(self.logvar_fc(x_last)) 
+        # posterior_mean   = self.mean_bn  (self.mean_fc  (x_last))          # posterior mean
+        # posterior_logvar = self.logvar_bn(self.logvar_fc(x_last)) 
+        posterior_mean = self.mean_fc  (x_last)
+        posterior_logvar = self.logvar_fc(x_last)
         posterior_var    = posterior_logvar.exp()
 
         eps = posterior_mean.data.new().resize_as_(posterior_mean.data).normal_(0,1) # noise
