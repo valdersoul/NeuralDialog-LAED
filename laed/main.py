@@ -21,6 +21,9 @@ class LossManager(object):
 
     def add_loss(self, loss, out=None):
         for key, val in loss.items():
+            if key == 'kl_w':
+                self.losses[key].append(val)
+                continue
             if key != out and val is not None and type(val) is not bool:
                 self.losses[key].append(val.item())
 

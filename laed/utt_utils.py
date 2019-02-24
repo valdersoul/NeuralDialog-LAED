@@ -139,7 +139,7 @@ def sweep(model, data_feed, config, num_batch=1, dest_f=None):
                                              b_id, attn=pred_attns)
             code = '-'.join(map(str, all_y_ids[b_id]))
             if prev_code != code:
-                write("Predict ({}): {}".format(code, pred_str))
+                write("Predict ({}): {}".format(code[:10], pred_str))
                 prev_code = code
 
         true_str, _ = engine.get_sent(model, de_tknize, true_labels, true_labels.shape[0]-1)
