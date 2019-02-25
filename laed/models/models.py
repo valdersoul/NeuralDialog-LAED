@@ -265,7 +265,7 @@ class DirVAE(BaseModel):
             if return_latent:
                 results['dec_init_state'] = dec_init_state
                 results['log_qy'] = z
-                retults['y_ids'] = self.p
+                results['y_ids'] = self.p
 
             return results
 
